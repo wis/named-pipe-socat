@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <stdio.h>
+#include <stdlib.h> // For atoi function
 
 int main(int argc, char *argv[]) {
     HANDLE pipe;
@@ -7,11 +8,17 @@ int main(int argc, char *argv[]) {
     DWORD bytesWritten;
     BOOL success;
     OVERLAPPED overlapped = {0};
+    DWORD timeout = 50; // Default timeout value, in milliseconds
 
-    // Check for the correct usage
-    if (argc != 2) {
-        printf("Usage: %s <pipe name>\n", argv[0]);
+    // Check for the correct usage and optional timeout argument
+    if (argc < 2 || argc > 3) {
+        printf("Usage: %s <pipe name> [timeout in milliseconds]\n", argv[0]);
         return 1;
+    }
+
+    // If timeout is provided as an argument, parse it
+    if (argc == 3) {
+        timeout = (DWORD)atoi(argv[2]);
     }
 
     // Try to open the named pipe
@@ -68,7 +75,7 @@ int main(int argc, char *argv[]) {
         // Check if the read is pending, indicating the operation is in progress
         if (!success && GetLastError() == ERROR_IO_PENDING) {
             // Wait for the read operation to complete or a timeout
-            DWORD wait = WaitForSingleObject(overlapped.hEvent, 1000); // 1 second timeout
+            DWORD wait = WaitForSingleObject(overlapped.hEvent, timeout); // Configurable timeout
             if (wait == WAIT_OBJECT_0) {
                 // If the read operation completed, retrieve the number of bytes read
                 if (GetOverlappedResult(pipe, &overlapped, &bytesRead, FALSE)) {
